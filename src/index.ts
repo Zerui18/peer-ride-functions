@@ -56,8 +56,12 @@ export const restrictUserSignupByDomain = beforeUserCreated(async (event) => {
 });
 
 const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+const recaptchaDisabled = process.env.RECAPTCHA_DISABLED === "true";
 
 export const verifyRecaptcha = onCall(async (request) => {
+  if (recaptchaDisabled) {
+    return { success: true };
+  }
   if (!recaptchaSecret) {
     throw new HttpsError("failed-precondition", "reCAPTCHA secret is not configured.");
   }
