@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import { setGlobalOptions } from "firebase-functions/v2/options";
 import { beforeUserCreated } from "firebase-functions/v2/identity";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import fetch from "node-fetch";
 
 setGlobalOptions({ maxInstances: 10 });
@@ -55,13 +56,17 @@ export const restrictUserSignupByDomain = beforeUserCreated(async (event) => {
   return;
 });
 
-const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+const recaptchaSecretKey = defineSecret("RECAPTCHA_SECRET_KEY");
 const recaptchaDisabled = process.env.RECAPTCHA_DISABLED === "true";
 
-export const verifyRecaptcha = onCall(async (request) => {
+export const verifyRecaptcha = onCall(
+  { secrets: [recaptchaSecretKey] },
+  async (request) => {
   if (recaptchaDisabled) {
     return { success: true };
   }
+  const recaptchaSecret = recaptchaSecretKey.value();
+  
   if (!recaptchaSecret) {
     throw new HttpsError("failed-precondition", "reCAPTCHA secret is not configured.");
   }
